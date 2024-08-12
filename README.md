@@ -2,7 +2,7 @@
 Outputs a csv file of job openings filtered by location and title.
 
 ## Installing
-The executables can run upon installation. Python does not need to be downloaded, and it comes with its own copy of Chrome.
+The executables can run upon installation. If downloading dev/chrome-win64 from this repo, chrome.dll.zip must be unzipped before running. Python does not need to be downloaded, and it comes with its own copy of Chrome.
 
 ## Running
 To run scraper, simply double-click scraper.exe <br>
