@@ -17,21 +17,24 @@ blacklist_filepath, outlog, url_csv):
         companies, locations = url_csv[['company', 'city']].T.values
         locations_whitelist = pd.unique(locations)
         locations_whitelist = list(locations_whitelist)
-        locations_whitelist.extend(['Location', 'Remote'])
-
+        # locations_whitelist.extend(['Location', 'Remote'])
+        locations_whitelist.extend([term[1:].strip() for term \
+            in titles_whitelist if term[0] == '@'])
+        
         with open(whitelist_filepath, encoding='utf-8') as f:
             titles_whitelist = [line.strip() for line in f.readlines()]
         with open(blacklist_filepath, encoding='utf-8') as f:
             titles_blacklist = [line.strip() for line in f.readlines()]
-        locations_blacklist = [term[1:] for term \
+        locations_blacklist = [term[1:].strip for term \
             in titles_blacklist if term[0] == '@']
 
         filtered_dict = {'company': [],
                 'title': [],
                 'location': [],
                 'postdate': [],
-                'jobpage': []}
-                # 'status': status}
+                'jobpage': [],
+                'location_status': [],
+                'title_status': []}
 
         for i, opening in unfiltered_jobs.iterrows():
             if isinstance(opening['title'], float):
@@ -50,27 +53,27 @@ blacklist_filepath, outlog, url_csv):
                     not any(location in opening['location'] 
                     for location in locations_blacklist)
 
-            if (opening_in_location 
-            and (opening_on_whitelist or not opening_on_blacklist)):
-                filtered_dict['company'].extend([opening['company']])
-                filtered_dict['title'].extend([opening['title']])
-                filtered_dict['location'].extend([opening['location']])
-                filtered_dict['postdate'].extend([opening['postdate']])
-                filtered_dict['jobpage'].extend([opening['jobpage']])
-
-            # if not opening_in_location:
-            #     status = '\tlocation outside territory'
-            # else:
-            #     status = '\t'
-            # if opening_on_whitelist:
-            #     status = 'whitelist explicit' + status
-            # elif opening_on_blacklist:
-            #     status = 'blacklist' + status
-            # else:
-            #     status = 'whitelist implicit' + status
+            # if (opening_in_location 
+            # and (opening_on_whitelist or not opening_on_blacklist)):
+            filtered_dict['company'].extend([opening['company']])
+            filtered_dict['title'].extend([opening['title']])
+            filtered_dict['location'].extend([opening['location']])
+            filtered_dict['postdate'].extend([opening['postdate']])
+            filtered_dict['jobpage'].extend([opening['jobpage']])
+            if not opening_in_location:
+                filtered_dict['location_status'].append('location blacklisted')
+            else:
+                filtered_dict['location_status'].append('location whitelisted')
+            if opening_on_whitelist:
+                filtered_dict['title_status'].append('whitelist explicit')
+            elif opening_on_blacklist:
+                filtered_dict['title_status'].append('blacklist')
+            else:
+                filtered_dict['title_status'].append('whitelist implicit')
+    
         df = pd.DataFrame(filtered_dict)
-        df.to_csv(f"output/{timestart_prefix}_jobs_filtered.csv", mode='a', 
-            index=False, header=False if i else True)
+        df.to_csv(f"output\\manual_{timestart_prefix}_jobs_filtered.csv", mode='a', 
+            index=False, header=True)
         print_success('Filter finished normally.', outlog)
     except Exception as e:
         print_fail(f"Filter failed due to {type(e)}", outlog)
@@ -80,12 +83,10 @@ blacklist_filepath, outlog, url_csv):
         print_message(f"Filter ran "\
             f"for {(end-start).total_seconds()/60} minutes", outlog)
 
-
-
 if __name__ == '__main__':
     start = datetime.datetime.now()
     timestart_prefix = start.strftime("%y-%m-%d_%H-%M-%S")
-    outlog = open(f'output/{timestart_prefix}_filter.log', 'a', 
+    outlog = open(f'output\\manual_{timestart_prefix}_filter.log', 'a', 
         encoding='utf-8')
     settings = parse_settings.parse_settings()
     try:

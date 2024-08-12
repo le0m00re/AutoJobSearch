@@ -4,7 +4,7 @@ from selenium.common.exceptions import (NoSuchElementException,
     StaleElementReferenceException, InvalidSelectorException, 
     ElementNotInteractableException, ElementClickInterceptedException, 
     WebDriverException, NoSuchWindowException, InvalidArgumentException,
-    TimeoutException)
+    TimeoutException, JavascriptException)
 import pandas as pd
 import time
 import datetime
@@ -150,7 +150,7 @@ jobpage_xpath, button_xpath, pagecount):
     # (i.e. clicking the button did nothing)
     # or if button doesn't exist (i.e. last page)
     except (AssertionError, NoSuchElementException, 
-    ElementNotInteractableException, InvalidArgumentException) as e:
+    ElementNotInteractableException, InvalidArgumentException, JavascriptException) as e:
         print_message(f"Scraped {pagecount} pages of:\t"\
             f"{company}\t({url}).\t{type(e)}")
         return None
@@ -223,7 +223,10 @@ if __name__ == '__main__':
             'location': [],
             'postdate': [],
             'jobpage': []}
-
+        df = pd.DataFrame(listing_dict)
+        df.to_csv(f'output/{timestart_prefix}_jobs.csv', mode='a', 
+            index=False, header=True)
+        
         unfamiliar_dict = {'company': [],
             'city': [],
             'state': [],
@@ -270,7 +273,7 @@ if __name__ == '__main__':
             if i % 10 == 0:
                 df = pd.DataFrame(listing_dict)
                 df.to_csv(f'output/{timestart_prefix}_jobs.csv', mode='a', 
-                    index=False, header=False if i else True)
+                    index=False, header=False)
                 listing_dict = {'company': [],
                                 'title': [],
                                 'location': [],
