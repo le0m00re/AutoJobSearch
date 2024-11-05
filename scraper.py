@@ -8,7 +8,14 @@ from selenium.common.exceptions import (NoSuchElementException,
 import pandas as pd
 import time
 import datetime
+import traceback
 import filter, parse_settings, scraper_linkedin
+
+# import os
+# abspath = os.path.abspath(__file__)
+# dname = os.path.dirname(abspath)
+# os.chdir(dname)
+# print(os.getcwd())
 
 start = datetime.datetime.now()
 timestart_prefix = start.strftime("%y-%m-%d_%H-%M-%S")
@@ -19,8 +26,9 @@ def print_message(message):
 def print_warning(warning):
     print(f"[WARNING]\t{warning}", file=outlog)
 
-def print_fail(fail):
+def print_fail(fail, traceback):
     print(f"[FATAL ERROR]\t{fail}", file=outlog)
+    print('\n','='*16 + 'ERROR INFO' + '='* 16, '='*42, traceback, '='*42, '=' * 14 + 'END ERROR INFO' + '='*14, '\n', sep = '\n', file=outlog)
 
 def print_success(success):
     print(f"[SUCCESS]\t{success}", file=outlog)
@@ -237,9 +245,8 @@ if __name__ == '__main__':
         options.binary_location = settings['CHROME_BIN']
         if settings['HEADLESS'].lower() == 'true':
             options = options.add_argument('--headless=new')
-        service = webdriver.ChromeService(executable_path=
-            settings['CHROMEDRIVER_BIN'])
-        driver = webdriver.Chrome(service=service, options=options)
+        service = webdriver.ChromeService(executable_path=settings['CHROMEDRIVER_BIN'])
+        driver = webdriver.Chrome(options=options, service=service)
 
         # Visit each company's job opening page, scroll to the bottom
         for i, (company, url) in enumerate(zip(companies, urls)):
@@ -283,16 +290,15 @@ if __name__ == '__main__':
 
     except FileNotFoundError as e:
         print_fail(f"One or more files in settings.ini \
-            does not exist as written.")
+            does not exist as written.", traceback.format_exc())
         raise e
     except (WebDriverException, NoSuchWindowException, KeyboardInterrupt) as e:
         print_fail(f"Scraper interrupted during:\t{company}\t({url})\t"\
             f"due to {type(e)}. Program either manually closed by user or "\
-            "crashed unexpectedly.")
+            'crashed unexpectedly', traceback.format_exc())
         raise e
     except Exception as e:
-        print_fail(f"Scraper exited prematurely during:\t{company}\t({url})\t"\
-            f"due to {type(e)}: {str(e)}")
+        print_fail(f"Scraper exited prematurely during:\t{company}\t({url})\n", traceback.format_exc())
         raise e
 
     finally:
@@ -307,9 +313,9 @@ if __name__ == '__main__':
             df.to_csv(f'output\\{timestart_prefix}_jobs.csv', 
                 mode='a', index=False, header=False)
         except Exception as e:
-            print_warning(f"Failed to produce output csv due to {type(e)}. "\
+            print_fail(f"Failed to produce output csv due to {type(e)}. "\
                 "This probably means it was never created in the first "\
-                "place, i.e. the program failed before it was made.")
+                f'place, i.e. the program failed before it was made.', traceback.format_exc())
         finally:
             end = datetime.datetime.now()
             print_message(f"Scraper ran for "\
@@ -326,7 +332,7 @@ if __name__ == '__main__':
                 mode='a', index=False, header=True)
             print_success(f"LinkedIn listings successfully appended.")
         except Exception as e:
-            print_fail(f'Appending LinkedIn listings failed due to {type(e)}')
+            print_fail(f'Appending LinkedIn listings failed due to {type(e)}', traceback.format_exc())
         finally:
             linkedin_end = datetime.datetime.now()
             print_message(f"Scraper ran for "\
@@ -340,6 +346,6 @@ if __name__ == '__main__':
                 settings['TITLE_WHITELIST'], settings['TITLE_BLACKLIST'], 
                 outlog, url_csv)
         except Exception as e:
-            print_fail(f'Filter failed due to {type(e)}')
+            print_fail(f'Filter failed due to {type(e)}', traceback.format_exc())
 
     outlog.close()
